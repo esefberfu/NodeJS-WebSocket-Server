@@ -24,4 +24,3 @@ Data Format: JSON
   'roll': 0.07,
   'throttle': 0.08
 }
-
