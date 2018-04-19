@@ -1,0 +1,148 @@
+<html>
+    <head>
+        <title>WebSocket Echo Client</title>
+    </head>
+    <body>
+        <h1>WebSocket Echo Client</h1>
+        <p>
+            <button onClick="initWebSocket();">Connect</button>
+            <button onClick="stopWebSocket();">Disconnect</button>
+            <button onClick="checkSocket();">State</button>
+        </p>
+        <p>
+            <textarea id="debugTextArea" style="width:400px;height:200px;"></textarea>
+        </p>
+        <p>
+            <table id="id_list">
+                <tr>
+                    <td>ID</td>
+                </tr>
+            </table>
+
+            <table>
+                <tr>
+                    <td>ID: </td>
+                    <td>Message: </td>
+                    <td>Yaw: </td>
+                    <td>Pitch: </td>
+                    <td>Roll: </td>
+                    <td>Throttle: </td>
+                </tr>
+
+                <tr>
+                    <td><input type="text" id="id" onkeydown="if(event.keyCode==13)sendMessage();"/></td>
+                    <td><input type="text" id="msg" onkeydown="if(event.keyCode==13)sendMessage();"/></td>
+                    <td><input type="text" id="yaw" onkeydown="if(event.keyCode==13)sendMessage();"/></td>
+                    <td><input type="text" id="pitch" onkeydown="if(event.keyCode==13)sendMessage();"/></td>
+                    <td><input type="text" id="roll" onkeydown="if(event.keyCode==13)sendMessage();"/></td>
+                    <td><input type="text" id="throttle" onkeydown="if(event.keyCode==13)sendMessage();"/></td>
+                </tr>
+            </table>
+            <button onClick="sendMessage();">Send</button>
+        </p>
+
+        <script type="text/javascript">
+            var debugTextArea = document.getElementById("debugTextArea");
+            function debug(message) {
+                debugTextArea.value += message + "\n";
+                debugTextArea.scrollTop = debugTextArea.scrollHeight;
+            }
+
+            function sendMessage() {
+                
+                if ( websocket != null )
+                {
+                    var id = document.getElementById('id').value;
+                    var msg = document.getElementById('msg').value;
+                    var yaw = document.getElementById('yaw').value;
+                    var pitch = document.getElementById('pitch').value;
+                    var roll = document.getElementById('roll').value;
+                    var throttle = document.getElementById('throttle').value;
+		            
+                    var data = {'id':id, 'msg':msg, 'yaw':yaw, 'pitch':pitch, 'roll':roll, 'throttle':throttle};
+                    websocket.send( JSON.stringify(data) );
+                    console.log( "string sent :", '"'+JSON.stringify(data)+'"' );
+                }
+            }
+
+            //var wsUri = "ws://localhost:8080/WebServer_war_exploded/device";
+            var wsUri = "ws://localhost:8080/client";
+            var websocket = null;
+
+            function initWebSocket() {
+                try {
+                    if (typeof MozWebSocket == 'function')
+                        WebSocket = MozWebSocket;
+                    if ( websocket && websocket.readyState == 1 )
+                        websocket.close();
+                    websocket = new WebSocket( wsUri, 'echo-protocol');
+                    websocket.onopen = function (evt) {
+                        debug("CONNECTED");
+                    };
+                    websocket.onclose = function (evt) {
+                        debug("DISCONNECTED");
+                    };
+                    websocket.onmessage = function (evt) {
+                        console.log( "Message received :", evt.data );
+
+                        var _data = JSON.parse(evt.data);
+                        for(i=0; i< Object.keys(_data).length; i++)
+                        {
+                            if(Object.keys(_data)[i] === 'new-device')
+                            {
+                                var table = document.getElementById("id_list");
+                                table.innerHTML += "<tr><td>" + _data['new-device'] +"</td></tr>";
+                            }
+                            else
+                            {
+                                debug(JSON.stringify(_data) );
+                            }
+                        }
+
+                    };
+                    websocket.onerror = function (evt) {
+                        debug('ERROR: ' + evt.data);
+                    };
+                } catch (exception) {
+                    debug('ERROR: ' + exception);
+                }
+            }
+
+            function stopWebSocket() {
+                if (websocket)
+                    websocket.close();
+            }
+
+            function checkSocket() {
+                if (websocket != null) {
+                    var stateStr;
+                    switch (websocket.readyState) {
+                        case 0: {
+                            stateStr = "CONNECTING";
+                            break;
+                        }
+                        case 1: {
+                            stateStr = "OPEN";
+                            break;
+                        }
+                        case 2: {
+                            stateStr = "CLOSING";
+                            break;
+                        }
+                        case 3: {
+                            stateStr = "CLOSED";
+                            break;
+                        }
+                        default: {
+                            stateStr = "UNKNOW";
+                            break;
+                        }
+                    }
+                    debug("WebSocket state = " + websocket.readyState + " ( " + stateStr + " )");
+                } else {
+                    debug("WebSocket is null");
+                }
+            }
+        </script>
+    </body>
+</html>
